@@ -1,0 +1,88 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Short Sectioned Assignment
+% LaTeX Template
+% Version 1.0 (5/5/12)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% Frits Wenneker (http://www.howtotex.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[paper=a4, fontsize=11pt]{scrartcl} % A4 paper and 11pt font size
+
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\usepackage{fourier} % Use the Adobe Utopia font for the document - comment this line to return to the LaTeX default
+\usepackage[english]{babel} % English language/hyphenation
+\usepackage{amsmath,amsfonts,amsthm} % Math packages
+
+\usepackage{lipsum} % Used for inserting dummy 'Lorem ipsum' text into the template
+
+\usepackage{sectsty} % Allows customizing section commands
+\allsectionsfont{\centering \normalfont\scshape} % Make all sections centered, the default font and small caps
+
+\usepackage{fancyhdr} % Custom headers and footers
+\pagestyle{fancyplain} % Makes all pages in the document conform to the custom headers and footers
+\fancyhead{} % No page header - if you want one, create it in the same way as the footers below
+\fancyfoot[L]{} % Empty left footer
+\fancyfoot[C]{} % Empty center footer
+\fancyfoot[R]{\thepage} % Page numbering for right footer
+\renewcommand{\headrulewidth}{0pt} % Remove header underlines
+\renewcommand{\footrulewidth}{0pt} % Remove footer underlines
+\setlength{\headheight}{1pt} % Customize the height of the header
+
+\numberwithin{equation}{section} % Number equations within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{figure}{section} % Number figures within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+\numberwithin{table}{section} % Number tables within sections (i.e. 1.1, 1.2, 2.1, 2.2 instead of 1, 2, 3, 4)
+
+\setlength\parindent{0pt} % Removes all indentation from paragraphs - comment this line for an assignment with lots of text
+
+%----------------------------------------------------------------------------------------
+%	TITLE SECTION
+%----------------------------------------------------------------------------------------
+
+\newcommand{\horrule}[1]{\rule{\linewidth}{#1}} % Create horizontal rule command with 1 argument of height
+
+\title{	
+\vspace*{-2cm}
+\normalfont \normalsize 
+\textsc{Program Analysis and Understanding} \\ [10pt] % Your university, school and/or department name(s)
+\horrule{0.2pt} \\[0.2cm] % Thin top horizontal rule
+\huge Embedding MPC into {\tt C++} \\ % The assignment title
+\horrule{2pt} \\[0.2cm] % Thick bottom horizontal rule
+}
+\author{Nikolaos Kofinas} % Your name
+\date{}%\normalsize\today} % Today's date or a custom date
+\begin{document}
+
+\maketitle % Print the title
+
+%----------------------------------------------------------------------------------------
+%	PROBLEM 1
+%----------------------------------------------------------------------------------------
+\vspace*{-1.5cm}
+\section{Motivation}
+\vspace*{-0.2cm}
+Various modern applications use Multiparty Computations to join the data from various parties/users in order to extract a result over the total data. These computation are trivial but now-days most of the users request a way to do them while they are keeping their data private without passing them to other parties or a trusted authority. The theory for Secure Multiparty Computations exists but there is no easy way for programmers to implement them in a popular language like {\tt C}, {\tt C++}, {\tt Java}, {\tt Python}, etc. Resent works tried to create new languages that let the programmer to write code which have the capability to handle both local and share computations. Unfortunately, these languages are independent and their is no easy way to embed them in a popular language. 
+
+\vspace*{-0.5cm}
+\section{Proposal}
+\vspace*{-0.2cm}
+In this project, we would like to embed Secure Multiparty Computations inside the {\tt C++} programming language. We chose {\tt C++} because it is a very popular languages and it used to write all sort of applications. Thus, if we embed MPC inside {\tt C++} will be possible to create any kind of applications which is impossible with the other, independent languages. Some examples of such applications are: a poker application with GUI which can be used from real users, an application that requires some dynamic input from the user, etc.
+
+The first stage of this project is to formalize the problem and see what exactly we need to embed into {\tt C++}  During this step we need to find out what functionality do we need from our DSL. The current idea is that the DSL will be used only to write a function which will contain all the multiparty computations and it will be callable from anywhere inside the {\tt C++} code. Also, we need to find out what operations we need to include in our DSL language (in order to do this one we must find out what it can be translated into boolean functions).
+
+The second part will be to find out how to implement the Domain Specific Language inside {\tt C++}. Currently, we do not know if we must use the boost.proto and/or boost.spirit libraries which let the user create DSLs inside {\tt C++} or we can use the meta-programming functionality of {\tt C++} to describe completely the DSL. 
+
+The third stage will be to write down the actual implement of the DSL into {\tt C++}. At first we must have an implementation that will simulate MPC without using the translation to boolean circuits (our DSL will just do multiparty computations). In this stage we need to find out how to exactly translate the DSL into {\tt C++} understanding code and how the communication of different parties will happen. The second milestone will be to add the translation to boolean circuits inside our implementation and validate that everything run correctly.
+\vspace*{-1.5cm}
+\end{document}
