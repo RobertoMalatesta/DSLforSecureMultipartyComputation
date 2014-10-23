@@ -73,7 +73,7 @@
 \normalfont \normalsize 
 \textsc{Program Analysis and Understanding} \\ [10pt] % Your university, school and/or department name(s)
 \horrule{0.2pt} \\[0.2cm] % Thin top horizontal rule
-\huge Embedding MPC into {\tt C++} \\ % The assignment title
+\huge Embedding SMC into {\tt C++} \\ % The assignment title
 \horrule{2pt} \\[0.2cm] % Thick bottom horizontal rule
 }
 \author{Nikolaos Kofinas} % Your name
@@ -87,31 +87,30 @@
 %----------------------------------------------------------------------------------------
 \section{Motivation}
 
-Various modern applications use Multiparty Computations to join the data from various parties/users in order to extract a result over the total data. These computation are trivial but now-days most of the users request a way to do them while they are keeping their data private without passing them to other parties or a trusted authority. The theory for Secure Multiparty Computations exists but there is no easy way for programmers to implement them in a popular language like {\tt C}, {\tt C++}, {\tt Java}, {\tt Python}, etc. Resent works tried to create new languages that let the programmer to write code which have the capability to handle both local and share computations. Unfortunately, these languages are independent and their is no easy way to embed them in a popular language. 
-
+Various modern applications use Multiparty Computations to join the data from various parties/users in order to extract a result over the total data. These computations are trivial but now most of the users request a way to do them while they are keeping their data private without passing them to other parties. One solution is to use a neutral party called "Trusted Authority" but their is no guarantee that this neutral party will keep the data hidden. The theory for Secure Multiparty Computations exists but there is no easy way for programmers to implement a program that uses SMC in a popular language like {\tt C}, {\tt C++}, {\tt Java}, {\tt Python}, etc. Resent works tried to create new languages that let the programmer to write code which have the capability to handle both local and share computations. Unfortunately, these languages do not have the capabilities that a modern language has (e.g. GUI libraries, IO libraries, etc).
 \section{Related Work}
 
 \noindent
-\textbf{Fairplay}: Fairplay~\cite{Fairplay} project created a Domain Specific Language which can be compiled directly into boolean circuits which are used in order to run this code in a Secret Multiparty Computations engine. The syntax of Fairplay is similar to the syntax of the Pascal programming language and thus it is not familiar to most of the programmers. Additionally, Fairplay allow the user to write only share code and thus the local part of the code must be written in a different language. 
+\textbf{Fairplay}: Fairplay~\cite{Fairplay} project created a Domain Specific Language which can be compiled directly into boolean circuits. Then, these circuits are used in order to run the share code in a Secret Multiparty Computations engine. The syntax of Fairplay is similar to Pascal and thus, it is not familiar for most of the programmers. Additionally, Fairplay allow the user to write only share code and thus the local part of the code must be written in a different (host) language. 
 
 \noindent
-\textbf{PCF}: The language that is part of the Portable Circuit Format~\cite{Ansi-c} project is similar to ansi-C and thus most of the programmers can used it. While the idea of this project to create a DSL which syntax is very close to an actual language, is has two disadvantages. First of all, it is designed only to work with two parties and thus it cannot be scaled to n parties and secondly it has the same problem as Fairplay, the programmers needs a host language in order to write the local code.
+\textbf{PCF}: The Portable Circuit Format~\cite{Ansi-c} project presented a language which syntax is similar to ansi-C and thus most of the programmers can use it. While the idea of this project to create a DSL which syntax is very close to an actual language, is has two disadvantages. First of all, it is designed only to work with two parties and thus it cannot be scaled to n > 2 parties and secondly it has the same problem as Fairplay, the programmers needs a host language in order to write the code that handle the local variables.
 
 \noindent
-\textbf{Wysteria}: Wysteria~\cite{Wysteria} is a Domain Specific Language which can provide to the programmer the power to write local and shared computations inside the same code. This is a significant advantage compared to the previous two projects because the programmer does not need a host language. On the other hand there are two disadvantages with this dsl, firstly the syntax of this language is very similar to oCaml and thus it can be strange for some of the programmers and secondly, it provides to the  programmer only basic programming capabilities.
+\textbf{Wysteria}: Wysteria~\cite{Wysteria} is another DSL which can provide to the programmer the power to write local and shared computations inside the same code. This is a significant advantage compared to the previous two approaches because the programmer does not need a host language. On the other hand there are two disadvantages, firstly the syntax of this language is very similar to oCaml and thus it can be strange for some programmers and secondly, it provides to programmers only basic programming capabilities.
  
 \section{Proposal}
 
-In this project, we would like to embed Secure Multiparty Computations inside the {\tt C++} programming language. We chose {\tt C++} because it is a very popular languages and it used to write all sort of applications. Thus, if we embed MPC inside {\tt C++} will be possible to create any kind of applications which is impossible with the other, independent languages. Some examples of such applications are: a poker application with GUI which can be used from real users, an application that requires some dynamic input from the user, etc.
+In this project, we would like to embed Secure Multiparty Computations inside the {\tt C++} programming language. We chose {\tt C++} because it is a very popular language and it is used to write all sort of applications. Thus, if we embed MPC inside {\tt C++} then it will be possible to create any kind of applications which is impossible with any independent language. Some examples of such applications are: a poker application with GUI which can be used from real users, an application that requires some dynamic input from the user, etc.
 
-The first stage of this project is to formalize the problem and see what exactly we need to embed into {\tt C++}  During this step we need to find out what functionality do we need from our DSL. The current idea is that the DSL will be used only to write a function which will contain all the secret multiparty computations and it will be callable from anywhere inside the {\tt C++} code. Also, we need to find out what types, operators, and statements we need to include in our DSL. Finally, ew must specify the syntax of the DSL which we want to be as similar to the syntax of {\tt C++} as possible.
+The first stage of this project is to formalize the problem and see what exactly we need to embed into {\tt C++}  During this step we need to find out what functionality do we want from our DSL. The current idea is that the DSL will be used only to write functions which will contain only secret multiparty computations and the these function will be called from anywhere inside the {\tt C++} code. Also, we need to find out what types, operators, and statements we need to include in our DSL. Finally, we must specify the syntax of the DSL which we want to be as similar to the syntax of {\tt C++} as possible.
 
-The second part will be to implement the interpreter for our language inside {\tt C++}. Currently, the idea is to use the {\tt C++} meta-programming language together with the boost mpl library. The implementation of our interpreter for is the most difficult part of this task and thus our first implementation will not contain the conversion to boolean circuits in order to make the problem simpler. 
+The second part will be to implement the interpreter for our language inside {\tt C++}. Currently, the idea is to use the {\tt C++} meta-programming language together with the Boost MPL library which provides some compile-time parsing functions. The implementation of our interpreter is the most difficult part of the project and thus our first implementation will not contain the conversion from DSL code to boolean circuits because we want to make the problem simpler. 
 
-The third part will be to add the translation to boolean circuits inside our interpreter. Along side with the code that will create the circuits we must add the appropriate code that will call the GMW~\cite{GMW} server who will handle all the communication between the parties.
+The third part will be to add the translation to boolean circuits inside our interpreter. Additionally, the code that will handle the connection with the GMW~\cite{GMW} server must be created in compile time. The GWM is a standalone program which can handle all the communication and the execution of the boolean circuit between all the parties.
 
 \section{Language}
-We started to writing down the types, statements and operations that our DSL will have:
+To specify our language first we must write down the types, statements and operations that will have:
 \begin{itemize}
 \item \textbf{Types}: bool, int (16 or 32), arrays of int or bool
 \item \textbf{Operators}: <, >, ==, !=, !, +, -, =, \&, |, \&\&, ||, $\wedge$
@@ -120,12 +119,12 @@ We started to writing down the types, statements and operations that our DSL wil
 
 \noindent
 \textbf{Types}:
-As we can see, our DSL has only two types bool and int. The reason behind this restriction is that the translation to boolean circuits is very difficult for float and double types. Also, if we allow strings to our language then their length must be the same for all parties and, at the time, it is simpler to let this type outside of our language.
+As we can see, our DSL has only two types bool and int. The reason behind this restriction is that the translation to boolean circuits is very difficult for float and double types. Also, if we allow strings as part of our language then their length must be the same for all parties and, at the time, it is simpler to let this type outside of our language.
 
 \textbf{Operators}: Our language support almost all the basic arithmetic and 
-logic operations with the exception of two arithmetic operators '*' and '/'. The reason that our language will not have these operators is because it is difficult to create the appropriate boolean circuit for them.
+logic operations with the exception of the '*' and '/' arithmetic operators. The reason that our language will not have these operators is because it is difficult to create the appropriate boolean circuit for them.
 
-\textbf{Statements}: The DSL will have only one statement, the if statement. This statements is easy to implement into boolean circuits compared to for, while, switch, and do-while. We will also need a for statement which can be unfold during compile time. Thus the initialization, condition, and increase part of the loop must be known during compile time in all parties (e.g. they would not contain any secret variable).
+\textbf{Statements}: The DSL will have only one statement, the if statement. This statements is easy to be translated into boolean circuits compared to the for, while, switch, and do-while statements. We will also need a for statement in order to access all the elements of a matrix. This for must be able to be unfold during compile time. Thus the initialization, condition, and increase part of the loop must be known during compile time in all parties (e.g. they would not contain any secret variable).
 
 \section{Project Milestones}
 In order to complete this project in the two month time window we decided to split it in small pieces and complete one at the time:
