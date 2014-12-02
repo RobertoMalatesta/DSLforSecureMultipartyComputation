@@ -5,34 +5,6 @@
 #include <sstream>
 #include <typeinfo>
 
-static bool inputs[100];
-static std::string theInputs;
-static int numOfInputs;
-
-template <std::size_t Arity>
-struct expression
-{    
-    static constexpr std::size_t arity = Arity;
-};
-
-struct arg : expression<1>
-{
-    template <typename Arg1>
-    static constexpr decltype(auto) apply(Arg1&& arg1)
-    {
-        return -2;//std::forward<Arg1>(arg1);
-    }
-};
-
-template <typename Type, Type value>
-struct constant : expression<0>
-{    
-    static constexpr decltype(auto) apply()
-    {
-        return value;
-    }
-};
-
 template<typename T>
 class Value{
 public:
@@ -40,13 +12,14 @@ public:
 };
 
 template<typename T, int uId>
-class SMCvalue : public expression<0>{
+class SMCvalue{
+    static_assert(uId >= 0, "The unique ID must be greater than zero!");
 protected:
-    std::string id = uId;
     std::string smcip;
 public:
     SMCvalue(){};
     SMCvalue(std::string ip):smcip(ip){};
+    static const int id = uId;
 public:
     void setIP(std::string ip){
         smcip = ip;
@@ -72,8 +45,6 @@ public:
         std::stringstream ss;
         ss << uId;
         v.value = ss.str();
-        theInputs = std::string(" ") + v.value;
-        std::cout << theInputs << std::endl;    
         return v;
     }
 
@@ -92,4 +63,8 @@ public:
     void setMyValue(T inp){
         myValue = inp;
     }
+};
+
+template<typename T, int uId>
+struct sharedSMCvalue{
 };

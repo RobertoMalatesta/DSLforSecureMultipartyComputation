@@ -1,153 +1,138 @@
 #include "SMC_abstract.hpp"
 
-template<typename Expr, typename... Args>
-std::string wrapper(Args... args){
-	return Expr::apply().value;
-}
+/*
+ * Metafunctions definition
+ */
+
+template <typename Cond, typename Then, typename Else>
+struct If {} ;
+
+template <typename Expr1, typename Expr2>
+struct Plus {} ;
+
+template <typename Expr1, typename Expr2>
+struct Seq {} ;
+
+template <typename Expr1, typename Expr2>
+struct Set {} ;
+
+template <typename Expr1>
+struct Ret {} ;
+
+template <typename type, unsigned int loop, typename Expr>
+struct For{};
+/* 
+ * Metafunctions implementation
+ */
 
 
-template <typename Rhs>
-struct s_negate : unary_expression<s_negate<Rhs>, Rhs>
-{
-    template <typename Arg1>
-    static constexpr decltype(auto) eval(Arg1&& arg1)
+// Evaluate plus:
+template <typename Expr1, typename Expr2, typename Env>
+struct Eval<Plus<Expr1,Expr2>, Env> {
+    static constexpr decltype(auto) result()
     {
-        static_assert(std::is_same<decltype(arg1), Value<int>&& >::value, "Non int argument to negation!");
+
+        auto rv0 = Eval<Expr1,Env>::result();
+        auto rv1 = Eval<Expr2,Env>::result();
+        static_assert(std::is_same<decltype(rv0), Value<int> >::value, "First argument of plus is non Int!");
+        static_assert(std::is_same<decltype(rv1), Value<int> >::value, "Second argument of plus is non Int!");
         Value<int> rv;
-        rv.value = std::string("(") + std::string("-") + std::forward<Arg1>(arg1).value + std::string(")");
-        std::cout << "Neg" << std::endl;
+        rv.value = std::string("(") + rv0.value + std::string("+") + rv1.value + std::string(")");
         return rv;
     }
 };
 
-template <typename Lhs, typename Rhs>
-struct s_plus : binary_expression<s_plus<Lhs, Rhs>, Lhs, Rhs>
-{
-    template <typename Arg1, typename Arg2>
-    static constexpr decltype(auto) eval(Arg1&& arg1, Arg2&& arg2)
+// Evaluate the set inside seq:
+template <typename T, int uId, typename Expr1, typename Expr2, typename Env>
+struct Eval<Seq< Set<sharedSMCvalue<T,uId>, Expr1> ,Expr2>, Env> {
+    static constexpr decltype(auto) result()
     {
-        //static_assert(Arg1::value_type == Arg2::value_type, "Wrong arguments 23!");
-        static_assert(std::is_same<decltype(arg1), Value<int>&& >::value, "Non int first argument to plus!");
-        static_assert(std::is_same<decltype(arg2), Value<int>&& >::value, "Non int second argument to plus!");
+
+
+        typename checkAndAdd<Binding<sharedSMCvalue<T,uId> , uId, Env>, EnvLookup<sharedSMCvalue<T,uId>, Env>::result>::result typedef newEnv;
+
+        auto rv0 = Eval<Expr1,Env>::result();
+        auto rv1 = Eval<Expr2,newEnv>::result();
+
+        static_assert(std::is_same<decltype(rv0), Value<int> >::value || std::is_same<decltype(rv0), Value<bool> >::value, "Set must have Int or Bool after =!");
+        //static_assert(std::is_same<decltype(rv1), Value<char> >::value, "Second argument of seq must be a command!");
+
+        Value<char> rv;
+        rv.value = std::string("{sh") + std::to_string(uId) + std::string("=") + rv0.value + std::string("};{") + rv1.value + std::string("}");
+        return rv;
+    }
+};
+
+// Evaluate the set inside seq:
+template <typename T, int uId, typename Expr1, typename Expr2, typename Env>
+struct Eval<Seq< Set<SMCvalue<T,uId>, Expr1> ,Expr2>, Env> {
+    static constexpr decltype(auto) result()
+    {
+        //We must trick the compiler to evaluate the assert only when the template is used
+        static_assert(!std::is_same<T,T>::value, "Set must have shared value before =!");
+        Value<char> rv;
+        rv.value = std::string("---");
+        return rv;
+    }
+};
+
+// Evaluate seq:
+template <typename Expr1, typename Expr2, typename Env>
+struct Eval<Seq<Expr1,Expr2>, Env> {
+    static constexpr decltype(auto) result()
+    {
+        auto rv0 = Eval<Expr1,Env>::result();
+        auto rv1 = Eval<Expr2,Env>::result();
+        //static_assert(std::is_same<decltype(rv0), Value<char> >::value, "First argument of seq must be a command!");
+        //static_assert(std::is_same<decltype(rv1), Value<char> >::value, "Second argument of seq must be a command!");
+        Value<char> rv;
+        rv.value = std::string("{") + rv0.value + std::string("};{") + rv1.value + std::string("}");
+        return rv;
+    }
+};
+
+// Evaluate the if:
+template <typename Cond, typename Then, typename Else, typename Env>
+struct Eval<If<Cond,Then,Else>,Env> {static constexpr decltype(auto) result()
+    {
+        auto rv0 = Eval<Cond,Env>::result();
+        auto rv1 = Eval<Then,Env>::result();
+        auto rv2 = Eval<Else,Env>::result();
+        static_assert(!std::is_same<decltype(rv0), Value<char> >::value, "Char argument at condition of IF!");
+        static_assert(std::is_same<decltype(rv1), decltype(rv2) >::value, "Both branches of if must be of the same type!");
         Value<int> rv;
-        rv.value = std::string("(") + std::forward<Arg1>(arg1).value + std::string("+") + std::forward<Arg2>(arg2).value + std::string(")");
-        std::cout << "Plus" << std::endl;
+        rv.value = std::string("[") + rv0.value + std::string("?") + rv1.value
+             +  std::string(":") + rv2.value + std::string("]");
         return rv;
     }
 };
 
-template <typename Lhs, typename Rhs>
-struct s_minus : binary_expression<s_minus<Lhs, Rhs>, Lhs, Rhs>
-{
-    template <typename Arg1, typename Arg2>
-    static constexpr decltype(auto) eval(Arg1&& arg1, Arg2&& arg2)
+
+// Evaluate ret:
+template <typename Expr1, typename Env>
+struct Eval<Ret<Expr1>, Env> {
+    static constexpr decltype(auto) result()
     {
-        //static_assert(Arg1::value_type == Arg2::value_type, "Wrong arguments 23!");
-        static_assert(std::is_same<decltype(arg1), Value<int>&& >::value, "Non int first argument to minus!");
-        static_assert(std::is_same<decltype(arg2), Value<int>&& >::value, "Non int second argument to minus!");
-        Value<int> rv;
-        rv.value = std::string("(") + std::forward<Arg1>(arg1).value + std::string("-") + std::forward<Arg2>(arg2).value + std::string(")");
+        auto rv0 = Eval<Expr1,Env>::result();
+        static_assert(!std::is_same<decltype(rv0), Value<char> >::value, "Return argument must be an expression!");
+        Value<char> rv;
+        rv.value = std::string("r->") + rv0.value;
         return rv;
     }
 };
 
-template <typename Lhs, typename Rhs>
-struct s_and : binary_expression<s_and<Lhs, Rhs>, Lhs, Rhs>
-{
-    template <typename Arg1, typename Arg2>
-    static constexpr decltype(auto) eval(Arg1&& arg1, Arg2&& arg2)
+template <typename type, unsigned int loop, typename Expr, typename Env>
+struct Eval<For<type,loop,Expr>, Env> {
+    static constexpr decltype(auto) result()
     {
-        //static_assert(Arg1::value_type == Arg2::value_type, "Wrong arguments 23!");
-        //static_assert(std::is_same<decltype(arg1), Value<int>&& >::value, "Non int first argument to minus!");
-        //static_assert(std::is_same<decltype(arg2), Value<int>&& >::value, "Non int second argument to minus!");
-        Value<bool> rv;
-        rv.value = std::string("(") + std::forward<Arg1>(arg1).value + std::string("&&") + std::forward<Arg2>(arg2).value + std::string(")");
+        Value<char> rv;
+        rv.value = std::string("<");
+        for(unsigned int i=0; i<loop; i++){
+            auto rv0 = Eval<Expr,Env>::result();
+            //static_assert(!std::is_same<decltype(rv0), Value<char> >::value, "Return argument must be an expression!");
+            rv.value += std::string("l") + std::to_string(i) + std::string("l") + rv0.value;
+        }
+        rv.value += std::string(">");
         return rv;
     }
 };
-
-template <typename Lhs, typename Rhs>
-struct s_or : binary_expression<s_or<Lhs, Rhs>, Lhs, Rhs>
-{
-    template <typename Arg1, typename Arg2>
-    static constexpr decltype(auto) eval(Arg1&& arg1, Arg2&& arg2)
-    {
-        //static_assert(Arg1::value_type == Arg2::value_type, "Wrong arguments 23!");
-        //static_assert(std::is_same<decltype(arg1), Value<int>&& >::value, "Non int first argument to minus!");
-        //static_assert(std::is_same<decltype(arg2), Value<int>&& >::value, "Non int second argument to minus!");
-        Value<bool> rv;
-        rv.value = std::string("(") + std::forward<Arg1>(arg1).value + std::string("or") + std::forward<Arg2>(arg2).value + std::string(")");
-        return rv;
-    }
-};
-
-template <typename Lhs, typename Rhs>
-struct s_equal : binary_expression<s_equal<Lhs, Rhs>, Lhs, Rhs>
-{
-    template <typename Arg1, typename Arg2>
-    static constexpr decltype(auto) eval(Arg1&& arg1, Arg2&& arg2)
-    {
-        static_assert(std::is_same<decltype(arg1), decltype(arg2)>::value, "Different type arguments in equal!");
-        Value<bool> rv;
-        rv.value = std::string("(") + std::forward<Arg1>(arg1).value + std::string("==") + std::forward<Arg2>(arg2).value + std::string(")");
-        return rv;
-    }
-};
-
-template <typename Lhs, typename Rhs>
-struct s_greater : binary_expression<s_greater<Lhs, Rhs>, Lhs, Rhs>
-{
-    template <typename Arg1, typename Arg2>
-    static constexpr decltype(auto) eval(Arg1&& arg1, Arg2&& arg2)
-    {
-        static_assert(std::is_same<decltype(arg1), decltype(arg2)>::value, "Different type arguments in greater!");
-        Value<bool> rv;
-        rv.value = std::string("(") + std::forward<Arg1>(arg1).value + std::string(">") + std::forward<Arg2>(arg2).value + std::string(")");
-        return rv;
-    }
-};
-
-template <typename Lhs, typename Rhs>
-struct s_less : binary_expression<s_less<Lhs, Rhs>, Lhs, Rhs>
-{
-    template <typename Arg1, typename Arg2>
-    static constexpr decltype(auto) eval(Arg1&& arg1, Arg2&& arg2)
-    {
-        static_assert(std::is_same<decltype(arg1), decltype(arg2)>::value, "Different type arguments in greater!");
-        Value<bool> rv;
-        rv.value = std::string("(") + std::forward<Arg1>(arg1).value + std::string("<") + std::forward<Arg2>(arg2).value + std::string(")");
-        return rv;
-    }
-};
-
-template <typename Rhs>
-struct s_not : unary_expression<s_not<Rhs>, Rhs>
-{
-    template <typename Arg1, typename Arg2>
-    static constexpr decltype(auto) eval(Arg1&& arg1)
-    {
-        //static_assert(Arg1::value_type == Arg2::value_type, "Wrong arguments 23!");
-        static_assert(std::is_same<decltype(arg1), Value<bool>&& >::value, "Non bool argument to not!");
-        //static_assert(std::is_same<decltype(arg2), Value<int>&& >::value, "Non int second argument to minus!");
-        Value<bool> rv;
-        rv.value = std::string("(!") + std::forward<Arg1>(arg1).value + std::string(")");
-        return rv;
-    }
-};
-
-template <typename Lhs, typename Mhs, typename Rhs>
-struct s_iff : ternary_expression<s_iff<Lhs, Mhs, Rhs>, Lhs, Mhs, Rhs>
-{
-    template <typename Arg1, typename Arg2, typename Arg3>
-    static constexpr decltype(auto) eval(Arg1&& arg1, Arg2&& arg2, Arg3&& arg3)
-    {
-        static_assert(std::is_same<decltype(arg2), decltype(arg3)>::value, "Second and third arguments in if are not of the same type!");
-        //static_assert(false, theInputs);
-        //TODO CHECK
-        Value<int> rv;
-        rv.value = std::string("(") + std::forward<Arg1>(arg1).value + std::string("?") + std::forward<Arg2>(arg2).value + std::string(":") + std::forward<Arg3>(arg3).value + std::string(")");
-        std::cout << "Iff" << std::endl;
-        return rv;
-    }
-};
-

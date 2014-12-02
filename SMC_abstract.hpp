@@ -1,10 +1,12 @@
 #include "SMC_values.hpp"
 
+/*
+ * Environment Definition
+*/
+
 // EmptyEnv is the empty environment.
 struct EmptyEnv ;
 
-// Bindings<Name,Value,Env> is a type than encodes the environment Env
-// extended with a binding for Name => Value.
 template <typename Name, int Value, typename Env>
 struct Binding {} ;
 
@@ -14,21 +16,59 @@ struct EnvLookup {} ;
 
 template <typename Name>
 struct EnvLookup <Name,EmptyEnv> {
-    //static_assert(false, "You reach the empty Env!");
     static const int result = -1;
-} ; // Name not found.
+};
 
 template <typename Name, int Value, typename Env>
 struct EnvLookup <Name, Binding<Name,Value,Env> > 
 {
     static const int result = Value;
-} ;
+};
 
 template <typename Name, typename Name2, int Value2, typename Env>
 struct EnvLookup <Name, Binding<Name2,Value2,Env> >
 {
     static const int result = EnvLookup<Name,Env>::result;
 } ;
+
+/*
+ * Eval metafunction
+*/
+
+template <typename Exp, typename Env>
+struct Eval {} ;
+
+// SMCvalues evaluate to ids:
+template <typename T, int uId, typename Env>
+struct Eval <SMCvalue<T,uId>, Env>
+{
+    static constexpr decltype(auto) result()
+    {
+        //auto result = EnvLookup<SMCvalue<T,uId>, Env>::result;
+        static_assert(EnvLookup<SMCvalue<T,uId>, Env>::result >= 0, "Value not found inside Environment!");
+        Value<T> rv;
+        rv.value = std::to_string(uId);
+        return rv;
+    }
+};
+
+// sharedSMCvalues evaluate to ids:
+template <typename T, int uId, typename Env>
+struct Eval <sharedSMCvalue<T,uId>, Env>
+{
+    static constexpr decltype(auto) result()
+    {
+        //auto result = EnvLookup<SMCvalue<T,uId>, Env>::result;
+        static_assert(EnvLookup<sharedSMCvalue<T,uId>, Env>::result >= 0, "Shared value has not been declared yet!!");
+        Value<T> rv;
+        rv.value = std::string("sh") + std::to_string(uId);
+        return rv;
+    }
+};
+
+/*
+ * Automatic creation of the initial Environment
+ */
 
 template<typename... Args> 
 struct createEnv{};
@@ -46,63 +86,36 @@ struct createEnv<Arg1, Args...>
     Binding<Arg1, Arg1::id, env> typedef result;
 };
 
+/*
+ * Insert new value at Env if not already there
+ */
+template<typename Arg1, int found>
+struct checkAndAdd{
+
+};
+
+template<typename Name, int Value, typename Env>
+struct checkAndAdd<Binding<Name,Value,Env>, -1>
+{
+    Binding<Name,Value,Env> typedef result;
+};
+
+template<typename Name, int Value, typename Env, int found>
+struct checkAndAdd<Binding<Name,Value,Env>, found>
+{
+    Env typedef result;
+};
+
+
+/*
+ * Wrapper Class callable from user
+ */
 
 template<typename Expr, typename... Args>
 std::string wrapper(Args... args){
-	typename createEnv<Args...>::result typedef lala;
-    int v = EnvLookup <SMCvalue<int,2>, lala >::result;
-    static_assert(EnvLookup <SMCvalue<int,2>, lala >::result != -1, "Value not found into environment!");
-    std::cout << v << std::endl << std::endl;
-	return 2;//Expr::apply().value;
+    typename createEnv<Args...>::result typedef lala;
+    //int v = EnvLookup <SMCvalue<int,2>, lala >::result;
+    //static_assert(EnvLookup <SMCvalue<int,2>, lala >::result != -1, "Value not found into environment!");
+    //std::cout << v << std::endl << std::endl;
+    return Eval<Expr, lala>::result().value;
 }
-
-
-template <typename Expr, typename Rhs>
-struct unary_expression : expression<Rhs::arity>
-{    
-    template <typename... Args>
-    static constexpr decltype(auto) apply(Args&&... args)
-    {
-        static_assert(sizeof...(Args) == unary_expression::arity, "Wrong number of operands!");
-        return Expr::eval(Rhs::apply(std::forward<Args>(args)...));
-    }
-};
-
-template <typename Expr, typename Lhs, typename Rhs>
-struct binary_expression : expression<Lhs::arity + Rhs::arity>
-{
-    template <typename... Args>
-    static constexpr decltype(auto) apply(Args&&... args)
-    {
-        static_assert(sizeof...(Args) == binary_expression::arity, "Wrong number of operands!");
-        return _apply(std::make_index_sequence<Lhs::arity>{}, std::make_index_sequence<Rhs::arity>{}, std::tuple<Args&&...>(std::forward<Args>(args)...));
-    }
-
-    template <typename Tuple, std::size_t... Arity1, std::size_t... Arity2>
-    static constexpr decltype(auto) _apply(std::index_sequence<Arity1...>, std::index_sequence<Arity2...>, Tuple&& args)
-    {
-        return Expr::eval(Lhs::apply(static_cast<typename std::tuple_element<Arity1, Tuple>::type>(std::get<Arity1>(args))...),
-                          Rhs::apply(static_cast<typename std::tuple_element<Lhs::arity + Arity2, Tuple>::type>(std::get<Lhs::arity + Arity2>(args))...));
-    }
-};
-
-template <typename Expr, typename Lhs,typename Mhs, typename Rhs>
-struct ternary_expression : expression<Lhs::arity + Rhs::arity + Mhs::arity>
-{
-    template <typename... Args>
-    static constexpr decltype(auto) apply(Args&&... args)
-    {
-        static_assert(sizeof...(Args) == ternary_expression::arity, "Wrong number of operands!");
-        return _apply(std::make_index_sequence<Lhs::arity>{}, std::make_index_sequence<Mhs::arity>{}, std::make_index_sequence<Rhs::arity>{}, std::tuple<Args&&...>(std::forward<Args>(args)...));
-    }
-
-    template <typename Tuple, std::size_t... Arity1, std::size_t... Arity2, std::size_t... Arity3>
-    static constexpr decltype(auto) _apply(std::index_sequence<Arity1...>, std::index_sequence<Arity2...>, std::index_sequence<Arity3...>, Tuple&& args)
-    {
-        return Expr::eval(Lhs::apply(static_cast<typename std::tuple_element<Arity1, Tuple>::type>(std::get<Arity1>(args))...),
-                          Mhs::apply(static_cast<typename std::tuple_element<Lhs::arity + Arity2, Tuple>::type>(std::get<Lhs::arity + Arity2>(args))...),
-                          Rhs::apply(static_cast<typename std::tuple_element<Lhs::arity + Mhs::arity + Arity3, Tuple>::type>(std::get<Lhs::arity + Mhs::arity + Arity3>(args))...));
-    }
-};
-
-
