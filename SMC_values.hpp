@@ -68,3 +68,8 @@ public:
 template<typename T, int uId>
 struct sharedSMCvalue{
 };
+
+template<typename T, int fId>
+struct forSMCvalue{
+    static const int id = fId;
+};

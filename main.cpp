@@ -21,6 +21,8 @@ int main()
     typedef SMCvalue<int,2> s2;
     typedef SMCvalue<int,3> s3;
     typedef SMCvalue<int,4> s4;
+
+    typedef forSMCvalue<int,1> f1;
     
     typedef sharedSMCvalue<int,12> sh1;
     s1 v1;
@@ -28,13 +30,24 @@ int main()
     s3 v3;    //THIS MUST BE DIFFERENT
     s4 v4;
     std::string y = wrapper<
-                        If<s1
-                            ,Ret<Plus<s3,s2> >
-                            ,Seq<
+                        If<s1,
+                            Ret<Plus<s3,s2> >,
+                            Seq<
                                 Set<sh1,s2>,
-                                Ret<sh1>//For<int, 2, sh1>
+                                For<4, f1,
+                                    Ret<
+                                        Plus<sh1,f1>
+                                    >
+                                >
                             >
                         >
                     >(v1,v2,v3,v4);
     std::cout << "All tests passed! " << y << std::endl;
+    std::string x = wrapper<
+                        If<Greater<s1,s2>,
+                            Ret<Id<s1> >,
+                            Ret<Id<s2> >
+                        >
+                    >(v1,v2);
+    std::cout << "Who has it bigger?! " << x << std::endl;
 }

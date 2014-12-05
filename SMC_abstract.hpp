@@ -5,10 +5,19 @@
 */
 
 // EmptyEnv is the empty environment.
-struct EmptyEnv ;
+struct EmptyEnv{
+    static const int nonSharedValues = 0;
+};
 
 template <typename Name, int Value, typename Env>
-struct Binding {} ;
+struct Binding {
+    static const int nonSharedValues = Env::nonSharedValues;
+} ;
+
+template <typename T, int id, int Value, typename Env>
+struct Binding<SMCvalue<T,id> , Value, Env> {
+    static const int nonSharedValues = Env::nonSharedValues + 1;
+} ;
 
 // EnvLookup<Name,Env> :: result looks up the value of Name in Env.
 template <typename Name, typename Env>
@@ -35,16 +44,16 @@ struct EnvLookup <Name, Binding<Name2,Value2,Env> >
  * Eval metafunction
 */
 
-template <typename Exp, typename Env>
+template <typename Exp, typename Env, bool IsReturnLegal>
 struct Eval {} ;
 
 // SMCvalues evaluate to ids:
-template <typename T, int uId, typename Env>
-struct Eval <SMCvalue<T,uId>, Env>
+template <typename T, int uId, typename Env, bool IsReturnLegal>
+struct Eval <SMCvalue<T,uId>, Env, IsReturnLegal>
 {
     static constexpr decltype(auto) result()
     {
-        //auto result = EnvLookup<SMCvalue<T,uId>, Env>::result;
+        static const bool hasReturn = false;
         static_assert(EnvLookup<SMCvalue<T,uId>, Env>::result >= 0, "Value not found inside Environment!");
         Value<T> rv;
         rv.value = std::to_string(uId);
@@ -53,17 +62,52 @@ struct Eval <SMCvalue<T,uId>, Env>
 };
 
 // sharedSMCvalues evaluate to ids:
-template <typename T, int uId, typename Env>
-struct Eval <sharedSMCvalue<T,uId>, Env>
+template <typename T, int uId, typename Env, bool IsReturnLegal>
+struct Eval <sharedSMCvalue<T,uId>, Env, IsReturnLegal>
 {
     static constexpr decltype(auto) result()
     {
-        //auto result = EnvLookup<SMCvalue<T,uId>, Env>::result;
+        static const bool hasReturn = false;
         static_assert(EnvLookup<sharedSMCvalue<T,uId>, Env>::result >= 0, "Shared value has not been declared yet!!");
         Value<T> rv;
         rv.value = std::string("sh") + std::to_string(uId);
         return rv;
     }
+};
+
+// forSMCvalues evaluate to for ids:
+template <typename T, int uId, typename Env, bool IsReturnLegal>
+struct Eval <forSMCvalue<T,uId>, Env, IsReturnLegal>
+{
+    static constexpr decltype(auto) result()
+    {
+        static const bool hasReturn = false;
+        static_assert(EnvLookup<forSMCvalue<T,uId>, Env>::result >= 0, "Invalid for value value has not been declared yet!!");
+        Value<T> rv;
+        rv.value = std::string("fv") + std::to_string(uId);
+        return rv;
+    }
+};
+
+/*
+ * Insert new value at Env if not already there
+ */
+template<typename Arg1, int found, bool FireError>
+struct checkAndAdd{
+
+};
+
+template<typename Name, int Value, typename Env, bool FireError>
+struct checkAndAdd<Binding<Name,Value,Env>, -1, FireError>
+{
+    Binding<Name,Value,Env> typedef result;
+};
+
+template<typename Name, int Value, typename Env, int found, bool FireError>
+struct checkAndAdd<Binding<Name,Value,Env>, found, FireError>
+{
+    Env typedef result;
+    static_assert(!FireError, "Duplicate function argument!");
 };
 
 /*
@@ -82,29 +126,11 @@ struct createEnv<Arg1>
 template<typename Arg1, typename... Args>
 struct createEnv<Arg1, Args...>
 {
-    typename createEnv<Args...>::result typedef env;
-    Binding<Arg1, Arg1::id, env> typedef result;
+    typename createEnv<Args...>::result typedef Env;
+    typename checkAndAdd<Binding<Arg1 , Arg1::id, Env>, EnvLookup<Arg1, Env>::result, true>::result typedef result;
+    //Binding<Arg1, Arg1::id, env> typedef result;
 };
 
-/*
- * Insert new value at Env if not already there
- */
-template<typename Arg1, int found>
-struct checkAndAdd{
-
-};
-
-template<typename Name, int Value, typename Env>
-struct checkAndAdd<Binding<Name,Value,Env>, -1>
-{
-    Binding<Name,Value,Env> typedef result;
-};
-
-template<typename Name, int Value, typename Env, int found>
-struct checkAndAdd<Binding<Name,Value,Env>, found>
-{
-    Env typedef result;
-};
 
 
 /*
@@ -114,8 +140,8 @@ struct checkAndAdd<Binding<Name,Value,Env>, found>
 template<typename Expr, typename... Args>
 std::string wrapper(Args... args){
     typename createEnv<Args...>::result typedef lala;
-    //int v = EnvLookup <SMCvalue<int,2>, lala >::result;
-    //static_assert(EnvLookup <SMCvalue<int,2>, lala >::result != -1, "Value not found into environment!");
-    //std::cout << v << std::endl << std::endl;
-    return Eval<Expr, lala>::result().value;
+    
+    static_assert(Eval<Expr, lala, true>::hasReturn, "There is no valid return in the end of the function!");
+
+    return Eval<Expr, lala, true>::result().value;
 }
