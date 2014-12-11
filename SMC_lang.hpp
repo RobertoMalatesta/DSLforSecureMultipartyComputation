@@ -40,6 +40,8 @@ template <unsigned int loop, typename loopVar, typename Expr>
 struct For{
         static const bool hasReturn = false;
 };
+
+struct Nope{};
 /* 
  * Metafunctions implementation
  */
@@ -106,6 +108,95 @@ struct Eval<Seq< Set<sharedSMCvalue<T,uId>, Expr1> ,Expr2>, Env, IsReturnLegal> 
 };
 
 /*
+ * Sequence with a set inside
+ */
+template <int uId, typename T, int smcId, typename Expr2, typename Env, bool IsReturnLegal>
+struct Eval<Seq< Set<idSMCvalue<uId>, SMCvalue<T,smcId> > ,Expr2>, Env, IsReturnLegal> {
+    typename checkAndAdd<Binding<idSMCvalue<uId> , uId, Env>, EnvLookup<idSMCvalue<uId>, Env>::result, false>::result typedef newEnv;
+    static const bool hasReturn = Eval<Expr2,newEnv,true>::hasReturn;
+    static constexpr decltype(auto) result()
+    {
+        auto rv0 = Eval<SMCvalue<T,smcId>,Env,false>::result();
+        auto rv1 = Eval<Expr2,newEnv,true>::result();
+
+        static_assert(std::is_same<decltype(rv0), Value<int> >::value || std::is_same<decltype(rv0), Value<bool> >::value, "Set must have Int or Bool after =!");
+        //static_assert(std::is_same<decltype(rv1), Value<char> >::value, "Second argument of seq must be a command!");
+
+        Value<char> rv;
+        rv.value = std::string("{sh") + std::to_string(uId) + std::string("=") + std::to_string(smcId) + std::string("};{") + rv1.value + std::string("}");
+        return rv;
+    }
+};
+
+/*
+ * Sequence with a set inside
+ */
+template <typename T, int uId, typename Expr1, typename Env, bool IsReturnLegal>
+struct Eval<Set<sharedSMCvalue<T,uId>, Expr1>, Env, IsReturnLegal> {
+    static const bool hasReturn = false;
+    static constexpr decltype(auto) result()
+    {
+        static_assert(EnvLookup<sharedSMCvalue<T,uId>, Env>::result >= 0, "Invalid set! Value has not been declared yet!!");
+        auto rv0 = Eval<Expr1,Env,false>::result();
+
+        Value<char> rv;
+        rv.value = std::string("(sh") + std::to_string(uId) + std::string("=") + rv0.value + std::string(")");
+        return rv;
+    }
+};
+
+/*
+ * Sequence with a set inside
+ */
+template <typename T, int uId, typename Expr1, typename Env, bool IsReturnLegal>
+struct Eval<Set<forSMCvalue<T,uId>, Expr1>, Env, IsReturnLegal> {
+    static const bool hasReturn = false;
+    static constexpr decltype(auto) result()
+    {
+        static_assert(EnvLookup<forSMCvalue<T,uId>, Env>::result >= 0, "Invalid for set! Value has not been declared yet!!");
+        auto rv0 = Eval<Expr1,Env,false>::result();
+
+        Value<char> rv;
+        rv.value = std::string("(for") + std::to_string(uId) + std::string("=") + rv0.value + std::string(")");
+        return rv;
+    }
+};
+
+/*
+ * Sequence with a set inside
+ */
+template <int uId, typename T, int smcid, typename Env, bool IsReturnLegal>
+struct Eval<Set<idSMCvalue<uId>, SMCvalue<T,smcid> >, Env, IsReturnLegal> {
+    static const bool hasReturn = false;
+    static constexpr decltype(auto) result()
+    {
+        static_assert(EnvLookup<idSMCvalue<uId>, Env>::result >= 0, "Invalid set! Value has not been declared yet!!");
+        static_assert(EnvLookup<SMCvalue<T,smcid>, Env>::result >= 0, "Invalid set! SMCvalue has not been declared yet!!");
+
+        Value<char> rv;
+        rv.value = std::string("(idv") + std::to_string(uId) + std::string("=") + std::to_string(uId) + std::string(")");
+        return rv;
+    }
+};
+
+/*
+ * Sequence with a set inside
+ */
+template <int uId, typename T, int smcid, typename Env, bool IsReturnLegal>
+struct Eval<Set<idSMCvalue<uId>, forSMCvalue<T,smcid> >, Env, IsReturnLegal> {
+    static const bool hasReturn = false;
+    static constexpr decltype(auto) result()
+    {
+        static_assert(EnvLookup<idSMCvalue<uId>, Env>::result >= 0, "Invalid set! Value has not been declared yet!!");
+        static_assert(EnvLookup<forSMCvalue<T,smcid>, Env>::result >= 0, "Invalid set! SMCvalue has not been declared yet!!");
+
+        Value<char> rv;
+        rv.value = std::string("(idv") + std::to_string(uId) + std::string("=") + std::to_string(uId) + std::string(")");
+        return rv;
+    }
+};
+
+/*
  * Sequence the trivial case
  */
 template <typename Expr1, typename Expr2, typename Env, bool IsReturnLegal>
@@ -137,9 +228,23 @@ struct Eval<If<Cond,Then,Else>,Env,IsReturnLegal> {
 
         static_assert(!std::is_same<decltype(rv0), Value<char> >::value, "Char argument at condition of IF!");
         static_assert(std::is_same<decltype(rv1), decltype(rv2) >::value, "Both branches of if must be of the same type!");
-        Value<int> rv;
+        decltype(rv1) rv;
         rv.value = std::string("[") + rv0.value + std::string("?") + rv1.value
              +  std::string(":") + rv2.value + std::string("]");
+        return rv;
+    }
+};
+
+/*
+ * Empty command
+ */
+template<typename Env, bool IsReturnLegal>
+struct Eval<Nope, Env, IsReturnLegal>{
+    static const bool hasReturn = false;
+    static constexpr decltype(auto) result()
+    {
+        Value<char> rv;
+        rv.value = std::string("()");
         return rv;
     }
 };
@@ -156,6 +261,21 @@ struct Eval<Ret<Expr1>, Env, true> {
         static_assert(!std::is_same<decltype(rv0), Value<char> >::value, "Return argument must be an expression!");
         Value<char> rv;
         rv.value = std::string("r->") + rv0.value;
+        return rv;
+    }
+};
+
+/*
+ * Return the id of a user
+ */
+template <int uId, typename Env>
+struct Eval<Ret<idSMCvalue<uId> >, Env, true> {
+    static const bool hasReturn = true;
+    static constexpr decltype(auto) result()
+    {
+        auto rv0 = Eval<idSMCvalue<uId>,Env,false>::result();
+        Value<char> rv;
+        rv.value = std::string("r_id->idv") + std::to_string(uId);
         return rv;
     }
 };
@@ -189,7 +309,7 @@ struct Eval<For<loop,loopVar,Expr>, Env, IsReturnLegal> {
         Value<char> rv;
         rv.value = std::string("<");
         auto rv0 = Eval<Expr,newEnv,true>::result();
-        static_assert(std::is_same<decltype(rv0), Value<char> >::value, "Function expr must be a command!");
+        static_assert(std::is_same<decltype(rv0), Value<char> >::value, "For expr must be a command!");
         for(unsigned int i=0; i<loop; i++){
             rv.value += std::string("l") + std::to_string(i) + std::string("l") + rv0.value;
         }
@@ -266,4 +386,19 @@ struct Eval<Seq< Set<SMCvalue<T,uId>, Expr1> ,Expr2>, Env, IsReturnLegal> {
     }
 };
 
+/*
+ * Trying to set something to an SMCvalue
+ */
+template <typename T, int uId, typename Expr1, typename Env, bool IsReturnLegal>
+struct Eval<Set<SMCvalue<T,uId>, Expr1>, Env, IsReturnLegal> {
+    static const bool hasReturn = false;
+    static constexpr decltype(auto) result()
+    {
+        //We must trick the compiler to evaluate the assert only when the template is used
+        static_assert(!std::is_same<T,T>::value, "Set can only change shared values not SMCvalues!");
+        Value<char> rv;
+        rv.value = std::string("---");
+        return rv;
+    }
+};
 

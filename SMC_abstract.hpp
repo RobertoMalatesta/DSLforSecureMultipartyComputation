@@ -89,6 +89,20 @@ struct Eval <forSMCvalue<T,uId>, Env, IsReturnLegal>
     }
 };
 
+// forSMCvalues evaluate to for ids:
+template <int uId, typename Env, bool IsReturnLegal>
+struct Eval <idSMCvalue<uId>, Env, IsReturnLegal>
+{
+    static constexpr decltype(auto) result()
+    {
+        static const bool hasReturn = false;
+        static_assert(EnvLookup<idSMCvalue<uId>, Env>::result >= 0, "Invalid for value value has not been declared yet!!");
+        Value<char> rv;
+        rv.value = std::string("idv") + std::to_string(uId);
+        return rv;
+    }
+};
+
 /*
  * Insert new value at Env if not already there
  */

@@ -73,3 +73,8 @@ template<typename T, int fId>
 struct forSMCvalue{
     static const int id = fId;
 };
+
+template<int fId>
+struct idSMCvalue{
+    static const int id = fId;
+};

@@ -9,14 +9,7 @@
 //g++ main.cpp -std=c++14 -ftime-report -fdiagnostics-color=always
 
 int main()
-{    
-    int a = 2;
-    std::string a1 = "true";
-    std::string a2 = "22";
-    std::string a3 = "25";
-    std::string a4 = "32";
-    std::string a5 = "1552";
-
+{
     typedef SMCvalue<int,1> s1;
     typedef SMCvalue<int,2> s2;
     typedef SMCvalue<int,3> s3;
@@ -24,20 +17,24 @@ int main()
 
     typedef forSMCvalue<int,1> f1;
     
-    typedef sharedSMCvalue<int,12> sh1;
+    typedef sharedSMCvalue<int,1> sh1;
+    typedef idSMCvalue<1> id1;
     s1 v1;
     s2 v2;
     s3 v3;    //THIS MUST BE DIFFERENT
     s4 v4;
     std::string y = wrapper<
-                        If<s1,
-                            Ret<Plus<s3,s2> >,
-                            Seq<
-                                Set<sh1,s2>,
-                                For<4, f1,
-                                    Ret<
-                                        Plus<sh1,f1>
-                                    >
+                        Seq<Set<id1, s1>,
+                            Seq<Set<sh1, s1>,
+                                Seq<For<4, f1,
+                                        If< Greater<f1,sh1>,
+                                            Seq< Set<sh1, f1>,
+                                                Set<id1, f1>
+                                            >,
+                                            Nope
+                                        >
+                                    >,
+                                    Ret<id1>
                                 >
                             >
                         >
