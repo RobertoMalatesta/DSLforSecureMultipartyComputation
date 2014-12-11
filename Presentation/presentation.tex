@@ -84,7 +84,7 @@ University of Maryland, College Park
 \includegraphics[width=5cm]{non_collude.png}
 \caption{Source:\tiny{ \url{http://www.cs.columbia.edu/~mariana/noncollude.htm}}}
 \end{figure}
-\item Why is useful?
+\item Why we car about it?
 \end{itemize}
 \end{frame}
 
@@ -92,7 +92,6 @@ University of Maryland, College Park
 \begin{frame}
 \frametitle{Related work}
 \begin{itemize}
-\item Various variables for executing the programs
 \item Languages designed for these kind of problems
 \begin{itemize}
 \item Wysteria
@@ -140,6 +139,8 @@ template <>
 struct factorial<0> {
 	enum { value = 1 };
 };
+...
+cout << factorial<5>::value << endl;
 \end{lstlisting}
 \end{frame}
 
@@ -168,7 +169,7 @@ struct doSomething<int>{
 };
 template <int y>
 struct doSomething<float>{
-    static const float result = y*202;
+    static const int result = y*202;
 };
 \end{lstlisting}
 \end{itemize}
@@ -215,7 +216,7 @@ struct doSomething<float>{
 \end{itemize}
 \item Statements
 \begin{itemize}
-\item Plus, Minus [in: int, out: int]
+\item Plus, Minus, Logic Or...
 \item Greater, Lesser, And, Or...
 \item Set
 \item Sequence
@@ -257,69 +258,44 @@ Seq<
 \begin{lstlisting}
 typedef mySMCvalue<int, 1> s1;
 typedef SMCvalue<int, 2> s2;
-typedef sharedSMCvalue<int, 1> sh1;
 s1 v1;
 s2 v2;
 v1.value = 2;
 v1.ip = myip;
 v2.ip = hisip;
-typedef Seq<
-    Set<sh1,s1>,
-    If<
-        Greater<sh1,s2>,
-        Ret<Id<s1> >,
-        Ret<Id<s2> >
-    >
+typedef If<
+    Greater<sh1,s2>,
+    Ret<Id<s1> >,
+    Ret<Id<s2> >
 > func;
 int idOfWinner = wrapper<func>(v1,v2);
 \end{lstlisting}
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Implementation}
-\begin{itemize}
-\item We need an Environment handler
+\frametitle{A complete Example}
 \begin{lstlisting}
-template <typename Name, int Value, typename Env>
-struct Binding {
-    ...
-} ;
-typedef Binding<int, 2,
-           Binding<float, 3, EmptyEnv>> Env;
-           
-template<typename Name, int Value, typename Env>
-struct EnvLookup <Name, Binding<Name,Value,Env>> 
-{  static const int res = Value;  };
-
-template<typename Name, typename Name2,
-          int Value2, typename Env>
-struct EnvLookup<Name, Binding<Name2,Value2,Env>>{
-  static const int res=EnvLookup<Name,Env>::res;
-} ;
+typedef Seq<
+    Set<id1, s1>,
+    Seq<
+        Set<sh1, s1>,
+        Seq<
+            For<4, f1,
+                If<Greater<f1,sh1>,
+                    Seq< Set<sh1, f1>,
+                        Set<id1, f1>
+                    >,
+                    Nope
+                >
+            >,
+            Ret<id1>
+        >
+    >
+>func;
+int idOfWinner = wrapper<func>(v1,v2,v3,v4);
 \end{lstlisting}
-\end{itemize}
 \end{frame}
 
-\begin{frame}[fragile]
-\frametitle{Implementation}
-\begin{itemize}
-\item We followed the left side first eval approach
-\begin{lstlisting}
-template <typename Exp, typename Env, bool IsReturnLegal>
-struct Eval {} ;
-
-template <typename Expr1, typename Expr2>
-struct Plus {} ;
-
-template <typename Expr1, typename Expr2,
-         typename Env, bool IsReturnLegal>
-struct Eval<Plus<Expr1,Expr2>, Env, IsReturnLegal>
-{
-...
-};
-\end{lstlisting}
-\end{itemize}
-\end{frame}
 
 
 \begin{frame}[fragile]
@@ -387,5 +363,51 @@ Rastogi, Aseem, Matthew A. Hammer, and Michael Hicks. ``Wysteria: A programming 
 “Secure multi-party computation of boolean circuits with applications to
 privacy in on-line marketplaces,” 2011, \url{http://eprint.iacr.org/}
 \end{thebibliography}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{BackUp: Implementation}
+\begin{itemize}
+\item We need an Environment handler
+\begin{lstlisting}
+template <typename Name, int Value, typename Env>
+struct Binding {
+    ...
+} ;
+typedef Binding<int, 2,
+           Binding<float, 3, EmptyEnv>> Env;
+           
+template<typename Name, int Value, typename Env>
+struct EnvLookup <Name, Binding<Name,Value,Env>> 
+{  static const int res = Value;  };
+
+template<typename Name, typename Name2,
+          int Value2, typename Env>
+struct EnvLookup<Name, Binding<Name2,Value2,Env>>{
+  static const int res=EnvLookup<Name,Env>::res;
+} ;
+\end{lstlisting}
+\end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{BackUp: Implementation}
+\begin{itemize}
+\item We followed the left side first eval approach
+\begin{lstlisting}
+template <typename Exp, typename Env, bool IsReturnLegal>
+struct Eval {} ;
+
+template <typename Expr1, typename Expr2>
+struct Plus {} ;
+
+template <typename Expr1, typename Expr2,
+         typename Env, bool IsReturnLegal>
+struct Eval<Plus<Expr1,Expr2>, Env, IsReturnLegal>
+{
+...
+};
+\end{lstlisting}
+\end{itemize}
 \end{frame}
 \end{document}
